@@ -1,7 +1,13 @@
 package coverage
 
 import (
+	"errors"
+	"fmt"
 	"os"
+	"sort"
+	"strings"
+	"testing"
+	"time"
 )
 
 // DO NOT EDIT THIS FUNCTION
@@ -18,202 +24,200 @@ func init() {
 
 // WRITE YOUR CODE BELOW
 
-func TestLen(t *testing.T) {
-	testCases := []struct {
-		name  string
-		input People
-	}{
-		{
-			name:  "Length is nil",
-			input: nil,
-		},
-		{
-			name:  "Length is 0",
-			input: make(People, 0),
-		},
-		{
-			name:  "Length is 100",
-			input: make(People, 100),
-		},
-	}
+func TestSwap(t *testing.T) {
+	people := People{{firstName: "Laura"},{firstName: "Anel"}}
+	peopleExpect := []string{"Anel","Laura"}
 
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			if len(testCase.input) != testCase.input.Len() {
-				t.Errorf("got: %v, want: %v", testCase.input.Len(), len(testCase.input))
-			}
-		})
-	}
+	people.Swap(0,1)
+	if peopleExpect[0] != people[0].firstName && peopleExpect[1] != people[1].firstName {
+		t.Errorf("func \"Swap()\" working not correctly")
+	} 
+}
+
+func TestLen(t *testing.T) {
+	people := People{{firstName: "Laura"},{firstName: "Anel"}}
+
+	lP := people.Len()
+	if lP != 2 {
+		t.Errorf("func \"Len()\" working not correctly")
+	} 
 }
 
 func TestLess(t *testing.T) {
-	people := People{
-		Person{firstName: "A", lastName: "B", birthDay: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)},
-		Person{firstName: "B", lastName: "Z", birthDay: time.Date(2000, 2, 1, 0, 0, 0, 0, time.UTC)},
-		Person{firstName: "G", lastName: "D", birthDay: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)},
-		Person{firstName: "G", lastName: "E", birthDay: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)},
-	};
-
-	testCases := []struct {
-		name  string
-		input People
-		i int
-		j int
-		want bool
-	}{
-		{
-			name:  "Person is less by birthday",
-			input: people,
-			i: 1,
-			j: 0,
-			want: true,
+	tPeople := map[string]map[string]interface{}{
+		"birth=[1,0]" : {
+			"value" : People{
+				{birthDay: time.Date(1986, 12, 5, 0, 0, 0, 0, time.UTC)}, // oldest
+				{birthDay: time.Date(1986, 12, 5, 0, 0, 1, 0, time.UTC)},
+			},
+			"expect" : true,
 		},
-		{
-			name:  "Person is not less by birthday",
-			input: people,
-			i: 0,
-			j: 1,
-			want: false,
+		"birth=[0,1]" : {
+			"value" : People{
+				{birthDay: time.Date(1986, 12, 5, 0, 0, 1, 0, time.UTC)}, // younger
+				{birthDay: time.Date(1986, 12, 5, 0, 0, 0, 0, time.UTC)},
+			},
+			"expect" : false,
 		},
-		{
-			name:  "Person is less by firstname",
-			input: people,
-			i: 0,
-			j: 2,
-			want: true,
+		"f_name[1,0]" : {
+			"value" : People{
+				{
+					firstName: "abc#",
+					birthDay: time.Date(1986, 12, 5, 0, 0, 0, 0, time.UTC),
+				},
+				{
+					firstName: "abc",
+					birthDay: time.Date(1986, 12, 5, 0, 0, 0, 0, time.UTC),
+				},
+			},
+			"expect" : true,
 		},
-		{
-			name:  "Person is not less by firstname",
-			input: people,
-			i: 2,
-			j: 0,
-			want: false,
+		"l_name[1,0]" : {
+			"value" : People{
+				{
+					firstName: "abc",
+					lastName: "abcd",
+					birthDay: time.Date(1986, 12, 5, 0, 0, 0, 0, time.UTC),
+				},
+				{
+					firstName: "abc",
+					lastName: "abc",
+					birthDay: time.Date(1986, 12, 5, 0, 0, 0, 0, time.UTC),
+				},
+			},
+			"expect" : true,
 		},
-		{
-			name:  "Person is less by lastname",
-			input: people,
-			i: 2,
-			j: 3,
-			want: true,
-		},
-		{
-			name:  "Person is not less by lastname",
-			input: people,
-			i: 3,
-			j: 2,
-			want: false,
+		"equal" : {
+			"value" : People{
+				{
+					firstName: "abc",
+					lastName: "abc",
+					birthDay: time.Date(1986, 12, 5, 0, 0, 0, 0, time.UTC),
+				},
+				{
+					firstName: "abc",
+					lastName: "abc",
+					birthDay: time.Date(1986, 12, 5, 0, 0, 0, 0, time.UTC),
+				},
+			},
+			"expect" : false,
 		},
 	}
 
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			if testCase.want != testCase.input.Less(testCase.i, testCase.j) {
-				t.Errorf("got: %v, want: %v", testCase.input.Less(testCase.i, testCase.j), testCase.want)
+	for k, v := range tPeople {
+		obj := v
+		t.Run(k,func(t *testing.T) {
+			t.Parallel()
+			people := obj["value"].(People)
+			expect := obj["expect"].(bool)
+			got := people.Less(1, 0) // [i, i-1]
+			if got != expect {
+				t.Errorf("func \"Less()\" working not correctly: expect \"%t\" but got \"%t\"", expect, got)
 			}
 		})
 	}
 }
 
-func TestSwap(t *testing.T) {
-	people := People{
-		Person{firstName: "A", lastName: "B", birthDay: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)},
-		Person{firstName: "B", lastName: "Z", birthDay: time.Date(2000, 2, 1, 0, 0, 0, 0, time.UTC)},
-	};
+func TestPeopleLess(t *testing.T) {
+	t.Parallel()
+	people := People{{
+		firstName: "Laura",
+		lastName: "Galimzhanova",
+		birthDay: time.Date(1986, 12, 5, 0, 0, 0, 0, time.UTC),
+	},{
+		firstName: "Anel",
+		lastName: "Galimzhanova",
+		birthDay: time.Date(2019, 12, 8, 0, 0, 0, 0, time.UTC),
+	},{
+		firstName: "Anel#",
+		lastName: "Galimzhanova",
+		birthDay: time.Date(2019, 12, 8, 0, 0, 0, 0, time.UTC),
+	},{
+		firstName: "Faiz",
+		lastName: "Galimzhanov",
+		birthDay: time.Date(1984, 8, 22, 0, 0, 0, 0, time.UTC),
+	},{
+		firstName: "Diana",
+		lastName: "Galimzhanova",
+		birthDay: time.Date(2015, 9, 21, 0, 0, 0, 0, time.UTC),
+	},{
+		firstName: "Adel",
+		lastName: "Galimzhanova#",
+		birthDay: time.Date(2017, 7, 20, 0, 0, 0, 0, time.UTC),
+	},{
+		firstName: "Adel",
+		lastName: "Galimzhanova",
+		birthDay: time.Date(2017, 7, 20, 0, 0, 0, 0,time.UTC),
+	}}
 
-	testCases := []struct {
-		name  string
-		input People
-		i int
-		j int
-		want Person
-	}{
-		{
-			name:  "Person B must be first",
-			input: people,
-			i: 0,
-			j: 1,
-			want: Person{firstName: "B", lastName: "Z", birthDay: time.Date(2000, 2, 1, 0, 0, 0, 0, time.UTC)},
-		},
-		{
-			name:  "Person A must be first",
-			input: people,
-			i: 0,
-			j: 1,
-			want: Person{firstName: "A", lastName: "B", birthDay: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)},
-		},
+	expect := []string{"Anel-Galimzhanova","Anel#-Galimzhanova","Adel-Galimzhanova",
+	"Adel-Galimzhanova#","Diana-Galimzhanova","Laura-Galimzhanova","Faiz-Galimzhanov"}
+	sort.Sort(people)
+	if len(people) != len(expect) {
+		t.Error("length expected ang got not same")
+		return
 	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			testCase.input.Swap(testCase.i, testCase.j)
-
-			if testCase.want != people[0] {
-				t.Errorf("got: %v, want: %v", testCase.input.Less(testCase.i, testCase.j), testCase.want)
-			}
-		})
+	for i, v := range people {
+		got := fmt.Sprintf("%s-%s",v.firstName, v.lastName)
+		if got != expect[i] {
+			t.Errorf("sort: at index %d expected %s but got %s-%s",i, expect[i], v.firstName, v.lastName)
+		}
 	}
 }
 
 func TestNew(t *testing.T) {
-	testCases := []struct {
-		name  string
-		input string
-		want *Matrix
-		err error
-	}{
-		{
-			name:  "Empty string",
-			input: "",
-			want: nil,
-			err: fmt.Errorf("strconv.Atoi: parsing \"\": invalid syntax"),
-		},
-		{
-			name:  "Wrong string",
-			input: "0 1\n0 1 2",
-			want: nil,
-			err: fmt.Errorf("Rows need to be the same length"),
-		},
-		{
-			name:  "One row",
-			input: "0 1 2 3",
-			want: &Matrix{
-				rows: 1,
-				cols: 4,
-				data: []int{0,1,2,3},
+	t.Parallel()
+	tData := map[string]map[string]interface{}{
+		"normal" : {
+			"data" : "  0 1 2 3 4 5 6 7 8 9\n10 11 12 13 14 15 16 17 18 19  ",
+			"exp_data" : Matrix{
+				rows: 2,
+				cols: 10,
+				data: []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+					10, 11, 12, 13, 14, 15, 16, 17, 18, 19},
 			},
-			err: nil,
+			"exp_err" : nil,
 		},
-		{
-			name:  "Three rows",
-			input: "0 1 2\n3 4 5\n6 7 8",
-			want: &Matrix{
-				rows: 3,
-				cols: 3,
-				data: []int{0, 1, 2, 3, 4, 5, 6, 7, 8},
-			},
-			err: nil,
+		"empty" : {
+			"data" : " ",
+			"exp_data" : nil,
+			"exp_err" : errors.New("strconv.Atoi"),
 		},
-		{
-			name:  "Three rows with spaces",
-			input: " 0 1 2\n 3 4 5 \n6 7 8 ",
-			want: &Matrix{
-				rows: 3,
-				cols: 3,
-				data: []int{0, 1, 2, 3, 4, 5, 6, 7, 8},
-			},
-			err: nil,
+		"atoi_err" : {
+			"data" : "0 1 2 3 4 5 6 7 8 9a\n 10 11 12 13 14 15 16 17 18 19",
+			"exp_data" : nil,
+			"exp_err" : errors.New("strconv.Atoi"),
+		},
+		"cols_err" : {
+			"data" : "0 1 2 3 4 5 6 7 8 9\n 10 11 12 13 14 15 16 17 18",
+			"exp_data" : nil,
+			"exp_err" : errors.New("Rows need to be the same length"),
 		},
 	}
 
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			actual, err := New(testCase.input)
-
-			assert.Equal(t, testCase.want, actual)
-
+	for k, v := range tData {
+		name, obj := k, v
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			got, err := New(obj["data"].(string))
 			if err != nil {
-				if testCase.err.Error() != err.Error() {
-					t.Errorf("Error got: %v, want: %v", err, testCase.err)
+				exp_err := obj["exp_err"].(error)
+				if ((name == "atoi_err" || name == "empty") && !strings.HasPrefix(err.Error(), exp_err.Error())) ||
+				name == "cols_err" && err.Error() != exp_err.Error() {
+					t.Fatalf("unexpected error: %s",err.Error())
+				}
+				return // for "ok error"
+			}
+			expire := obj["exp_data"].(Matrix)
+			// catching error if testing data given with error
+			if got.cols != expire.cols || got.rows != expire.rows || len(expire.data) != len(got.data) { 
+				t.Fatalf("testing error: check given exp_data with given data, cols(%d-%d), rows(%d-%d), len(%d-%d),",
+				expire.cols, got.cols,expire.rows,got.rows,len(expire.data),len(got.data))
+			}
+			// catching error if testing data given with error - end
+			for i, d := range expire.data {
+				if got.data[i] != d {
+					t.Errorf("data not match: expected %d but got %d",d,got.data[i])
 				}
 			}
 		})
@@ -221,126 +225,112 @@ func TestNew(t *testing.T) {
 }
 
 func TestRows(t *testing.T) {
-	testCases := []struct {
-		name  string
-		input string
-		want [][]int
-	}{
-		{
-			name:  "One row",
-			input: "0 1 2 3",
-			want: [][]int{{0, 1, 2, 3}},
-		},
-		{
-			name:  "Three rows",
-			input: "0 1 2\n3 4 5\n6 7 8",
-			want: [][]int{{0, 1, 2}, {3, 4, 5}, {6, 7, 8}},
-		},
+	m := Matrix{
+		rows: 2,
+		cols: 10,
+		data: []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+			10, 11, 12, 13, 14, 15, 16, 17, 18, 19},
 	}
+	expect := [][]int{
+		{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+		{10, 11, 12, 13, 14, 15, 16, 17, 18, 19},
+	}
+	got := m.Rows()
 
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			actual, _ := New(testCase.input)
-
-			assert.Equal(t, testCase.want, actual.Rows())
-		})
+	// catching error if testing data given with error
+	lExpect := len(expect)
+	if lExpect != m.rows {
+		t.Fatalf("testing error: expected rows %d but got %d", lExpect, m.rows)
+	}
+	for i := 0; i < lExpect; i++ {
+		if lCol := len(expect[i]); lCol != m.cols {
+			t.Fatalf("testing error: expected cols %d but got %d", lCol, m.cols)
+		} 
+	}
+	// catching error if testing data given with error - end
+	for i := 0; i < lExpect; i++ {
+		for j := 0; j < len(expect[i]);j++ {
+			if got[i][j] != expect[i][j] {
+				t.Fatalf("not match: expected value %d but got %d", expect[i][j], got[i][j])
+			}
+		}
 	}
 }
 
 func TestCols(t *testing.T) {
-	testCases := []struct {
-		name  string
-		input string
-		want [][]int
-	}{
-		{
-			name:  "One row",
-			input: "0 1 2 3",
-			want: [][]int{{0}, {1}, {2}, {3}},
-		},
-		{
-			name:  "Three rows",
-			input: "0 1 2\n3 4 5\n6 7 8",
-			want: [][]int{{0, 3, 6}, {1, 4, 7}, {2, 5, 8}},
-		},
+	m := Matrix{
+		rows: 2,
+		cols: 10,
+		data: []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+			10, 11, 12, 13, 14, 15, 16, 17, 18, 19},
 	}
+	expect := [][]int{{0, 10},{1, 11}, {2, 12}, {3, 13}, {4, 14}, {5, 15}, 
+	{6, 16}, {7, 17}, {8, 18}, {9, 19}}
+	got := m.Cols()
 
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			actual, _ := New(testCase.input)
-
-			assert.Equal(t, testCase.want, actual.Cols())
-		})
+	// catching error if testing data given with error
+	lExpect := len(expect)
+	if lExpect != m.cols {
+		t.Fatalf("testing error: expected rows %d but got %d", lExpect, m.cols)
+	}
+	for i := 0; i < lExpect; i++ {
+		if lCol := len(expect[i]); lCol != m.rows {
+			t.Fatalf("testing error: expected cols %d but got %d", lCol, m.rows)
+		} 
+	}
+	// catching error if testing data given with error - end
+	for i := 0; i < lExpect; i++ {
+		for j := 0; j < len(expect[i]);j++ {
+			if got[i][j] != expect[i][j] {
+				t.Fatalf("not match: expected value %d but got %d", expect[i][j], got[i][j])
+			}
+		}
 	}
 }
 
 func TestSet(t *testing.T) {
-	testCases := []struct {
-		name  string
-		input string
-		row int
-		col int
-		value int
-		want bool
-	}{
-		{
-			name:  "Row is negative",
-			input: "0 1 2 3",
-			row: -1,
-			col: 0,
-			value: 0,
-			want: false,
+	t.Parallel()
+	m := &Matrix{
+		rows: 2,
+		cols: 10,
+		data: []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+			10, 11, 12, 13, 14, 15, 16, 17, 18, 19},
+	}
+	tData := map[string]map[string]int{
+		"normal" : {
+			"col" : 8,
+			"row" : 0,
+			"value" : 7,
+			"answer" : 1,
 		},
-		{
-			name:  "Column is negative",
-			input: "0 1 2 3",
-			row: 0,
-			col: -1,
-			value: 0,
-			want: false,
+		"err_col" : {
+			"col" : 10,
+			"row" : 0,
+			"value" : 7,
+			"answer" : 0,
 		},
-		{
-			name:  "Row is out of range",
-			input: "0 1 2 3",
-			row: 1,
-			col: 0,
-			value: 0,
-			want: false,
+		"err_row" : {
+			"col" : 8,
+			"row" : 2,
+			"value" : 7,
+			"answer" : 0,
 		},
-		{
-			name:  "Column is out of range",
-			input: "0 1 2 3",
-			row: 0,
-			col: 4,
-			value: 0,
-			want: false,
-		},
-		{
-			name:  "One row",
-			input: "0 1 2 3",
-			row: 0,
-			col: 1,
-			value: 4,
-			want: true,
-		},
-		{
-			name:  "Three rows",
-			input: "0 1 2\n3 4 5\n6 7 8",
-			row: 2,
-			col: 2,
-			value: 9,
-			want: true,
+		"err_minus" : {
+			"col" : -8,
+			"row" : 0,
+			"value" : 7,
+			"answer" : 0,
 		},
 	}
 
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			actual, _ := New(testCase.input)
-			got := actual.Set(testCase.row, testCase.col, testCase.value)
-
-			if testCase.want != got {
-				t.Errorf("got: %v, want: %v", got, testCase.want)
+	for k, v := range tData {
+		name, obj := k, v
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ans := obj["answer"] 
+			got := m.Set(obj["row"], obj["col"], obj["value"])
+			if got && ans == 0 || !got && ans == 1 {
+				t.Errorf("expected \"%t\" but got \"%t\"",!got, got)
 			}
 		})
 	}
