@@ -170,28 +170,28 @@ func TestNew(t *testing.T) {
 	tData := map[string]map[string]interface{}{
 		"normal" : {
 			"data" : "  0 1 2 3 4 5 6 7 8 9\n10 11 12 13 14 15 16 17 18 19  ",
-			"exp_data" : Matrix{
+			"expData" : Matrix{
 				rows: 2,
 				cols: 10,
 				data: []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
 					10, 11, 12, 13, 14, 15, 16, 17, 18, 19},
 			},
-			"exp_err" : nil,
+			"expErr" : nil,
 		},
 		"empty" : {
 			"data" : " ",
-			"exp_data" : nil,
-			"exp_err" : errors.New("strconv.Atoi"),
+			"expData" : nil,
+			"expErr" : errors.New("strconv.Atoi"),
 		},
-		"atoi_err" : {
+		"atoiErr" : {
 			"data" : "0 1 2 3 4 5 6 7 8 9a\n 10 11 12 13 14 15 16 17 18 19",
-			"exp_data" : nil,
-			"exp_err" : errors.New("strconv.Atoi"),
+			"expData" : nil,
+			"expErr" : errors.New("strconv.Atoi"),
 		},
-		"cols_err" : {
+		"colsErr" : {
 			"data" : "0 1 2 3 4 5 6 7 8 9\n 10 11 12 13 14 15 16 17 18",
-			"exp_data" : nil,
-			"exp_err" : errors.New("Rows need to be the same length"),
+			"expData" : nil,
+			"expErr" : errors.New("Rows need to be the same length"),
 		},
 	}
 
@@ -201,17 +201,17 @@ func TestNew(t *testing.T) {
 			t.Parallel()
 			got, err := New(obj["data"].(string))
 			if err != nil {
-				exp_err := obj["exp_err"].(error)
-				if ((name == "atoi_err" || name == "empty") && !strings.HasPrefix(err.Error(), exp_err.Error())) ||
-				name == "cols_err" && err.Error() != exp_err.Error() {
+				expErr := obj["expErr"].(error)
+				if ((name == "atoiErr" || name == "empty") && !strings.HasPrefix(err.Error(), expErr.Error())) ||
+				name == "colsErr" && err.Error() != expErr.Error() {
 					t.Fatalf("unexpected error: %s",err.Error())
 				}
 				return // for "ok error"
 			}
-			expire := obj["exp_data"].(Matrix)
+			expire := obj["expData"].(Matrix)
 			// catching error if testing data given with error
 			if got.cols != expire.cols || got.rows != expire.rows || len(expire.data) != len(got.data) { 
-				t.Fatalf("testing error: check given exp_data with given data, cols(%d-%d), rows(%d-%d), len(%d-%d),",
+				t.Fatalf("testing error: check given expData with given data, cols(%d-%d), rows(%d-%d), len(%d-%d),",
 				expire.cols, got.cols,expire.rows,got.rows,len(expire.data),len(got.data))
 			}
 			// catching error if testing data given with error - end
